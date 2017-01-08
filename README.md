@@ -20,7 +20,7 @@ The detailed information of the modules is shown below:
 We make use of networkx's data structure to store topology. Meanwhile, we also utilize networkx's built-in algorithm to calculate shortest paths.
 
 
-### Download File
+### Download
 
 Download files into Ryu directory, for instance, 'ryu/ryu/app/PureSDN' is OK.
 
@@ -60,13 +60,13 @@ After that, test the correctness of PureSDN:
     mininet> pingall
     mininet> iperf
 
-If you want to show the collected information, you can set the parameters in setting.py. Also, you can change the setting as you like, such as the bandwidth-sensitive service port numbers. After that, you can see the information shown in the terminal.
+If you want to show the collected information, you can set the parameters in setting.py. Also, you can change the setting as you like, such as the discovery period and monitor period. After that, you can see the information shown in the terminal.
 
 
 ### Authors
 
-Bring to you by Huang MaChi (Chongqing University of Posts and Telecommunications, Chongqing, China.) and Li Cheng (Beijing University of Posts and Telecommunications. www.muzixing.com).
+Brought to you by Huang MaChi (Chongqing University of Posts and Telecommunications, Chongqing, China.) and Li Cheng (Beijing University of Posts and Telecommunications. www.muzixing.com).
 
-If you have any question, you can email me. Don't forget to STAR this repository!
+If you have any question, email me. Don't forget to STAR this repository!
 
 Enjoy it!

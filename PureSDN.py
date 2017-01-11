@@ -60,15 +60,6 @@ class ShortestForwarding(app_manager.RyuApp):
 		self.datapaths = {}
 		self.weight = self.WEIGHT_MODEL[CONF.weight]
 
-	def set_weight_mode(self, weight):
-		"""
-			Set weight mode for path calculating.
-		"""
-		self.weight = weight
-		if self.weight == self.WEIGHT_MODEL['hop']:
-			self.awareness.get_shortest_paths(weight=self.weight)
-		return True
-
 	@set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
 	def _state_change_handler(self, ev):
 		"""
@@ -307,10 +298,9 @@ class ShortestForwarding(app_manager.RyuApp):
 		self.add_flow(datapath, 30, match, actions,
 					  idle_timeout=15, hard_timeout=60)
 
-	def install_flow(self, datapaths, link_to_port, access_table, path,
-					 flow_info, buffer_id, data=None):
+	def install_flow(self, datapaths, link_to_port, path, flow_info, buffer_id, data=None):
 		'''
-			Install flow entries for roundtrip: go and back.
+			Install flow entries for datapaths.
 			path=[dpid1, dpid2, ...]
 			flow_info = (eth_type, src_ip, dst_ip, in_port)
 			or
@@ -322,54 +312,24 @@ class ShortestForwarding(app_manager.RyuApp):
 		in_port = flow_info[3]
 		first_dp = datapaths[path[0]]
 		out_port = first_dp.ofproto.OFPP_LOCAL
-
-		# We should separately consider in different conditions: len(path) >= 3 or = 2 or = 1. (hmc)
 		# Install flow entry for intermediate datapaths.
-		if len(path) > 2:   # len(path) >= 3
-			for i in xrange(1, len(path)-1):
-				port = self.get_port_pair_from_link(link_to_port, path[i-1], path[i])
-				port_next = self.get_port_pair_from_link(link_to_port, path[i], path[i+1])
-				if port and port_next:
-					src_port, dst_port = port[1], port_next[0]
-					datapath = datapaths[path[i]]
-					self.send_flow_mod(datapath, flow_info, src_port, dst_port)
-					self.logger.debug("inter_link flow install")
+		for i in range(1, (len(path) - 1) / 2):
+			port = self.get_port_pair_from_link(link_to_port, path[i-1], path[i])
+			port_next = self.get_port_pair_from_link(link_to_port, path[i], path[i+1])
+			if port and port_next:
+				src_port, dst_port = port[1], port_next[0]
+				datapath = datapaths[path[i]]
+				self.send_flow_mod(datapath, flow_info, src_port, dst_port)
 
-		if len(path) > 1:
-			# Install flow entry for the last datapath: tor -> host.
-			port_pair = self.get_port_pair_from_link(link_to_port, path[-2], path[-1])
-			if port_pair is None:
-				self.logger.info("Port is not found")
-				return
-			src_port = port_pair[1]
-			dst_port = self.get_port(flow_info[2], access_table)
-			if dst_port is None:
-				self.logger.info("Last port is not found.")
-				return
-			last_dp = datapaths[path[-1]]
-			self.send_flow_mod(last_dp, flow_info, src_port, dst_port)
-
-			#  Install flow entry for the first datapath.
-			port_pair = self.get_port_pair_from_link(link_to_port, path[0], path[1])
-			if port_pair is None:
-				self.logger.info("Port not found in first hop.")
-				return
-			out_port = port_pair[0]
-			self.send_flow_mod(first_dp, flow_info, in_port, out_port)
-			# Imperfect flow installation method may cause more than one packet_in messages.
-			# And it becomes worse for elephant flows. (hmc)
-			self.send_packet_out(first_dp, buffer_id, in_port, out_port, data)
-
-		# len(path) = 1
-		else:
-			out_port = self.get_port(flow_info[2], access_table)
-			if out_port is None:
-				self.logger.info("Outport under the same datapath but hasn't been discovered.")
-				return
-			self.send_flow_mod(first_dp, flow_info, in_port, out_port)
-			# Imperfect flow installation method may cause more than one packet_in messages.
-			# And it becomes worse for elephant flows. (hmc)
-			self.send_packet_out(first_dp, buffer_id, in_port, out_port, data)
+		#  Install flow entry for the first datapath.
+		port_pair = self.get_port_pair_from_link(link_to_port, path[0], path[1])
+		if port_pair is None:
+			self.logger.info("Port not found in first hop.")
+			return
+		out_port = port_pair[0]
+		self.send_flow_mod(first_dp, flow_info, in_port, out_port)
+		# Send packet_out to the first datapath.
+		self.send_packet_out(first_dp, buffer_id, in_port, out_port, data)
 
 	def get_L4_info(self, tcp_pkt, udp_pkt, ip_proto, L4_port, Flag):
 		"""
@@ -435,12 +395,9 @@ class ShortestForwarding(app_manager.RyuApp):
 					self.logger.info("[PATH]%s<-->%s: %s" % (ip_src, ip_dst, path))
 					flow_info = (eth_type, ip_src, ip_dst, in_port)
 				# Install flow entries to datapaths along the path.
-				# Imperfect flow installation method may cause more than
-				# one packet_in messages, better to be modified. (hmc)
 				self.install_flow(self.datapaths,
 								  self.awareness.link_to_port,
-								  self.awareness.access_table, path,
-								  flow_info, msg.buffer_id, msg.data)
+								  path, flow_info, msg.buffer_id, msg.data)
 		else:
 			# Flood is not good.
 			self.flood(msg)

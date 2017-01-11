@@ -159,6 +159,63 @@ def install_proactive(net, topo):
 				nw_dst=10.%d.0.%d,actions=output:%d'" % (sw.name, num, i, topo.pod/2+i)
 			os.system(cmd)
 
+	# Aggregate Switch
+	# Downstream.
+	for sw in topo.AggSwitchList:
+		num = int(sw[-2:])
+		sw = net.get(sw)
+		podList = []
+		remainder = num % (topo.pod/2)
+		if topo.pod == 4:
+			if remainder == 0:
+				podList = [num-1, num]
+			elif remainder == 1:
+				podList = [num, num+1]
+		elif topo.pod == 8:
+			if remainder == 0:
+				podList = [num-3, num-2, num-1, num]
+			elif remainder == 1:
+				podList = [num, num+1, num+2, num+3]
+			elif remainder == 2:
+				podList = [num-1, num, num+1, num+2]
+			elif remainder == 3:
+				podList = [num-2, num-1, num, num+1]
+			else:
+				pass
+		else:
+			pass
+
+		k = 1
+		for i in podList:
+			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
+				'table=0,idle_timeout=0,hard_timeout=0,priority=10,arp, \
+				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw.name, i, topo.pod/2+k)
+			os.system(cmd)
+			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
+				'table=0,idle_timeout=0,hard_timeout=0,priority=10,ip, \
+				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw.name, i, topo.pod/2+k)
+			os.system(cmd)
+			k += 1
+
+	# Core Switch
+	for sw in topo.CoreSwitchList:
+		sw = net.get(sw)
+		j = 1
+		k = 1
+		for i in xrange(1, len(topo.EdgeSwitchList)+1):
+			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
+				'table=0,idle_timeout=0,hard_timeout=0,priority=10,arp, \
+				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw.name, i, j)
+			os.system(cmd)
+			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
+				'table=0,idle_timeout=0,hard_timeout=0,priority=10,ip, \
+				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw.name, i, j)
+			os.system(cmd)
+			k += 1
+			if k == topo.pod/2 + 1:
+				j += 1
+				k = 1
+
 def iperfTest(net, topo):
 	logger.debug("Start iperfTEST")
 	h001, h015, h016 = net.get(

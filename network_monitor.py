@@ -115,19 +115,19 @@ class NetworkMonitor(app_manager.RyuApp):
 			Calculate flow speed and Save it.
 			(old) self.flow_stats = {dpid:{(in_port, ipv4_dst, out-port):[(packet_count, byte_count, duration_sec,  duration_nsec),],},}
 			(old) self.flow_speed = {dpid:{(in_port, ipv4_dst, out-port):[speed,],},}
-			(new) self.flow_stats = {dpid:{(priority, ipv4_dst):[(packet_count, byte_count, duration_sec,  duration_nsec),],},}
-			(new) self.flow_speed = {dpid:{(priority, ipv4_dst):[speed,],},}
+			(new) self.flow_stats = {dpid:{(priority, ipv4_src, ipv4_dst):[(packet_count, byte_count, duration_sec,  duration_nsec),],},}
+			(new) self.flow_speed = {dpid:{(priority, ipv4_src, ipv4_dst):[speed,],},}
 			Because the proactive flow entrys don't have 'in_port' and 'out-port' field.
-			Note: table-miss, LLDP, ARP flow entries are not what we need, filter them.
+			Note: table-miss, LLDP and ARP flow entries are not what we need, just filter them.
 		"""
 		body = ev.msg.body
 		dpid = ev.msg.datapath.id
 		self.stats['flow'][dpid] = body
 		self.flow_stats.setdefault(dpid, {})
 		self.flow_speed.setdefault(dpid, {})
-		for stat in sorted([flow for flow in body if ((flow.priority not in [0, 65535]) and (flow.match.get('ipv4_dst')))],
-						   key=lambda flow: (flow.priority, flow.match.get('ipv4_dst'))):
-			key = (stat.priority, stat.match.get('ipv4_dst'))
+		for stat in sorted([flow for flow in body if ((flow.priority not in [0, 65535]) and (flow.match.get('ipv4_src')) and (flow.match.get('ipv4_dst')))],
+						   key=lambda flow: (flow.priority, flow.match.get('ipv4_src'), flow.match.get('ipv4_dst'))):
+			key = (stat.priority, stat.match.get('ipv4_src'), stat.match.get('ipv4_dst'))
 			value = (stat.packet_count, stat.byte_count,
 					 stat.duration_sec, stat.duration_nsec)
 			self._save_stats(self.flow_stats[dpid], key, value, 5)
@@ -390,20 +390,20 @@ class NetworkMonitor(app_manager.RyuApp):
 		bodys = self.stats[_type]
 		if _type == 'flow':
 			print('\ndatapath  '
-				'priority           ip-dst  '
+				'priority        ip_src        ip_dst  '
 				'  packets        bytes  flow-speed(Kb/s)')
 			print('--------  '
-				'--------  ---------------  '
+				'--------  ------------  ------------  '
 				'---------  -----------  ----------------')
 			for dpid in sorted(bodys.keys()):
-				for stat in sorted([flow for flow in bodys[dpid] if ((flow.priority not in [0, 65535]) and (flow.match.get('ipv4_dst')))],
-					key=lambda flow: (flow.priority, flow.match.get('ipv4_dst'))):
-					print('%8d  %8s  %15s  %9d  %11d  %16.1f' % (
+
+				for stat in sorted([flow for flow in bodys[dpid] if ((flow.priority not in [0, 65535]) and (flow.match.get('ipv4_src')) and (flow.match.get('ipv4_dst')))],
+						   key=lambda flow: (flow.priority, flow.match.get('ipv4_src'), flow.match.get('ipv4_dst'))):
+					print('%8d  %8s  %12s  %12s  %9d  %11d  %16.1f' % (
 						dpid,
-						stat.priority, stat.match.get('ipv4_dst'),
+						stat.priority, stat.match.get('ipv4_src'), stat.match.get('ipv4_dst'),
 						stat.packet_count, stat.byte_count,
-						abs(self.flow_speed[dpid][
-							(stat.priority, stat.match.get('ipv4_dst'))][-1])*8/1000.0))
+						abs(self.flow_speed[dpid][(stat.priority, stat.match.get('ipv4_src'), stat.match.get('ipv4_dst'))][-1])*8/1000.0))
 			print
 
 		if _type == 'port':

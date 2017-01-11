@@ -154,7 +154,7 @@ class NetworkAwareness(app_manager.RyuApp):
 		if present_time - self.start_time < self.initiation_delay:
 			return
 
-		self.logger.info("Get network topology")
+		self.logger.info("[GET NETWORK TOPOLOGY]")
 		switch_list = get_switch(self.topology_api_app, None)
 		self.create_port_map(switch_list)
 		self.switches = [sw.dp.id for sw in switch_list]
@@ -196,7 +196,7 @@ class NetworkAwareness(app_manager.RyuApp):
 			Get initiation delay.
 		"""
 		if fanout == 4:
-			delay = 20
+			delay = 10
 		elif fanout == 8:
 			delay = 60
 		else:

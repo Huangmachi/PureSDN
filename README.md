@@ -51,6 +51,7 @@ Firstly, start up the network. An example is shown below:
 
 And then, go into the top directory of Ryu, and run the application. You are suggested to add arguments when starting Ryu. An example is shown below:
 
+    $ cd ryu
     $ ryu-manager --observe-links ryu/app/PureSDN/PureSDN.py --k_paths=4 --weight=bw --fanout=4
 
 NOTE: After these, we should wait for the network to complete the initiation for several seconds, because LLDP needs some time to discovery the network topology. We can't operate the network until "[GET NETWORK TOPOLOGY]" is printed in the terminal of the Ryu controller, otherwise, some error will occur. It may be about 10 seconds for fattree4, and a little longer for fattree8.

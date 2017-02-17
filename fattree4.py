@@ -99,7 +99,7 @@ class Fattree(Topo):
 					self.addLink(
 						self.CoreSwitchList[i*end+j],
 						self.AggSwitchList[x+i],
-						bw=bw_c2a, max_queue_size=100, use_htb=True)   # use_htb=True
+						bw=bw_c2a, max_queue_size=1000, use_htb=True)   # use_htb=True
 
 		# Agg to Edge
 		for x in xrange(0, self.iAggLayerSwitch, end):
@@ -107,7 +107,7 @@ class Fattree(Topo):
 				for j in xrange(0, end):
 					self.addLink(
 						self.AggSwitchList[x+i], self.EdgeSwitchList[x+j],
-						bw=bw_a2e, max_queue_size=100, use_htb=True)
+						bw=bw_a2e, max_queue_size=1000, use_htb=True)
 
 		# Edge to Host
 		for x in xrange(0, self.iEdgeLayerSwitch):
@@ -115,7 +115,7 @@ class Fattree(Topo):
 				self.addLink(
 					self.EdgeSwitchList[x],
 					self.HostList[self.density * x + i],
-					bw=bw_e2h, max_queue_size=100, use_htb=True)
+					bw=bw_e2h, max_queue_size=1000, use_htb=True)
 
 	def set_ovs_protocol_13(self,):
 		"""

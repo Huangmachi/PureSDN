@@ -1,7 +1,7 @@
+# Copyright (C) 2016 Huang MaChi at Chongqing University
+# of Posts and Telecommunications, Chongqing, China.
 # Copyright (C) 2016 Li Cheng at Beijing University of Posts
 # and Telecommunications. www.muzixing.com
-# Copyright (C) 2016 Huang MaChi at Chongqing University
-# of Posts and Telecommunications, China.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,19 +27,17 @@ from mininet.util import dumpNodeConnections
 import logging
 import os
 
-logging.basicConfig(filename='./fattree.log', level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 class Fattree(Topo):
-	logger.debug("Class Fattree")
+	"""
+		Class of Fattree Topology.
+	"""
 	CoreSwitchList = []
 	AggSwitchList = []
 	EdgeSwitchList = []
 	HostList = []
 
 	def __init__(self, k, density):
-		logger.debug("Class Fattree init")
 		self.pod = k
 		self.density = density
 		self.iCoreLayerSwitch = (k/2)**2
@@ -50,7 +48,7 @@ class Fattree(Topo):
 		# Init Topo
 		Topo.__init__(self)
 
-	def createTopo(self):
+	def createNodes(self):
 		self.createCoreLayerSwitch(self.iCoreLayerSwitch)
 		self.createAggLayerSwitch(self.iAggLayerSwitch)
 		self.createEdgeLayerSwitch(self.iEdgeLayerSwitch)
@@ -58,6 +56,9 @@ class Fattree(Topo):
 
 	# Create Switch and Host
 	def _addSwitch(self, number, level, switch_list):
+		"""
+			Create switches.
+		"""
 		for i in xrange(1, number+1):
 			PREFIX = str(level) + "00"
 			if i >= 10:
@@ -65,19 +66,18 @@ class Fattree(Topo):
 			switch_list.append(self.addSwitch(PREFIX + str(i)))
 
 	def createCoreLayerSwitch(self, NUMBER):
-		logger.debug("Create Core Layer")
 		self._addSwitch(NUMBER, 1, self.CoreSwitchList)
 
 	def createAggLayerSwitch(self, NUMBER):
-		logger.debug("Create Agg Layer")
 		self._addSwitch(NUMBER, 2, self.AggSwitchList)
 
 	def createEdgeLayerSwitch(self, NUMBER):
-		logger.debug("Create Edge Layer")
 		self._addSwitch(NUMBER, 3, self.EdgeSwitchList)
 
 	def createHost(self, NUMBER):
-		logger.debug("Create Host")
+		"""
+			Create hosts.
+		"""
 		for i in xrange(1, NUMBER+1):
 			if i >= 100:
 				PREFIX = "h"
@@ -87,9 +87,11 @@ class Fattree(Topo):
 				PREFIX = "h00"
 			self.HostList.append(self.addHost(PREFIX + str(i), cpu=1.0/NUMBER))
 
-	# Add Link
-	def createLink(self, bw_c2a=10, bw_a2e=10, bw_h2a=10):
-		logger.debug("Add link Core to Agg.")
+	def createLinks(self, bw_c2a=10, bw_a2e=10, bw_e2h=10):
+		"""
+			Add network links.
+		"""
+		# Core to Agg
 		end = self.pod/2
 		for x in xrange(0, self.iAggLayerSwitch, end):
 			for i in xrange(0, end):
@@ -99,7 +101,7 @@ class Fattree(Topo):
 						self.AggSwitchList[x+i],
 						bw=bw_c2a, max_queue_size=100, use_htb=True)   # use_htb=True
 
-		logger.debug("Add link Agg to Edge.")
+		# Agg to Edge
 		for x in xrange(0, self.iAggLayerSwitch, end):
 			for i in xrange(0, end):
 				for j in xrange(0, end):
@@ -107,15 +109,18 @@ class Fattree(Topo):
 						self.AggSwitchList[x+i], self.EdgeSwitchList[x+j],
 						bw=bw_a2e, max_queue_size=100, use_htb=True)
 
-		logger.debug("Add link Edge to Host.")
+		# Edge to Host
 		for x in xrange(0, self.iEdgeLayerSwitch):
 			for i in xrange(0, self.density):
 				self.addLink(
 					self.EdgeSwitchList[x],
 					self.HostList[self.density * x + i],
-					bw=bw_h2a, max_queue_size=100, use_htb=True)
+					bw=bw_e2h, max_queue_size=100, use_htb=True)
 
 	def set_ovs_protocol_13(self,):
+		"""
+			Set the OpenFlow version for switches.
+		"""
 		self._set_ovs_protocol_13(self.CoreSwitchList)
 		self._set_ovs_protocol_13(self.AggSwitchList)
 		self._set_ovs_protocol_13(self.EdgeSwitchList)
@@ -139,6 +144,34 @@ def set_host_ip(net, topo):
 			j = 1
 			i += 1
 
+def create_subnetList(topo, num):
+	"""
+		Create the subnet list of the certain Pod.
+	"""
+	subnetList = []
+	remainder = num % (topo.pod/2)
+	if topo.pod == 4:
+		if remainder == 0:
+			subnetList = [num-1, num]
+		elif remainder == 1:
+			subnetList = [num, num+1]
+		else:
+			pass
+	elif topo.pod == 8:
+		if remainder == 0:
+			subnetList = [num-3, num-2, num-1, num]
+		elif remainder == 1:
+			subnetList = [num, num+1, num+2, num+3]
+		elif remainder == 2:
+			subnetList = [num-1, num, num+1, num+2]
+		elif remainder == 3:
+			subnetList = [num-2, num-1, num, num+1]
+		else:
+			pass
+	else:
+		pass
+	return subnetList
+
 def install_proactive(net, topo):
 	"""
 		Install direct flow entries for edge switches.
@@ -146,70 +179,48 @@ def install_proactive(net, topo):
 	# Edge Switch
 	for sw in topo.EdgeSwitchList:
 		num = int(sw[-2:])
-		sw = net.get(sw)
 
 		# Downstream.
 		for i in xrange(1, topo.density+1):
 			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
 				'table=0,idle_timeout=0,hard_timeout=0,priority=10,arp, \
-				nw_dst=10.%d.0.%d,actions=output:%d'" % (sw.name, num, i, topo.pod/2+i)
+				nw_dst=10.%d.0.%d,actions=output:%d'" % (sw, num, i, topo.pod/2+i)
 			os.system(cmd)
 			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
 				'table=0,idle_timeout=0,hard_timeout=0,priority=10,ip, \
-				nw_dst=10.%d.0.%d,actions=output:%d'" % (sw.name, num, i, topo.pod/2+i)
+				nw_dst=10.%d.0.%d,actions=output:%d'" % (sw, num, i, topo.pod/2+i)
 			os.system(cmd)
 
 	# Aggregate Switch
 	# Downstream.
 	for sw in topo.AggSwitchList:
 		num = int(sw[-2:])
-		sw = net.get(sw)
-		podList = []
-		remainder = num % (topo.pod/2)
-		if topo.pod == 4:
-			if remainder == 0:
-				podList = [num-1, num]
-			elif remainder == 1:
-				podList = [num, num+1]
-		elif topo.pod == 8:
-			if remainder == 0:
-				podList = [num-3, num-2, num-1, num]
-			elif remainder == 1:
-				podList = [num, num+1, num+2, num+3]
-			elif remainder == 2:
-				podList = [num-1, num, num+1, num+2]
-			elif remainder == 3:
-				podList = [num-2, num-1, num, num+1]
-			else:
-				pass
-		else:
-			pass
+		subnetList = create_subnetList(topo, num)
 
 		k = 1
-		for i in podList:
+		for i in subnetList:
 			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
 				'table=0,idle_timeout=0,hard_timeout=0,priority=10,arp, \
-				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw.name, i, topo.pod/2+k)
+				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw, i, topo.pod/2+k)
 			os.system(cmd)
 			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
 				'table=0,idle_timeout=0,hard_timeout=0,priority=10,ip, \
-				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw.name, i, topo.pod/2+k)
+				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw, i, topo.pod/2+k)
 			os.system(cmd)
 			k += 1
 
 	# Core Switch
 	for sw in topo.CoreSwitchList:
-		sw = net.get(sw)
 		j = 1
 		k = 1
 		for i in xrange(1, len(topo.EdgeSwitchList)+1):
 			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
 				'table=0,idle_timeout=0,hard_timeout=0,priority=10,arp, \
-				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw.name, i, j)
+				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw, i, j)
 			os.system(cmd)
 			cmd = "ovs-ofctl add-flow %s -O OpenFlow13 \
 				'table=0,idle_timeout=0,hard_timeout=0,priority=10,ip, \
-				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw.name, i, j)
+				nw_dst=10.%d.0.0/16, actions=output:%d'" % (sw, i, j)
 			os.system(cmd)
 			k += 1
 			if k == topo.pod/2 + 1:
@@ -217,7 +228,9 @@ def install_proactive(net, topo):
 				k = 1
 
 def iperfTest(net, topo):
-	logger.debug("Start iperfTEST")
+	"""
+		Start iperf test.
+	"""
 	h001, h015, h016 = net.get(
 		topo.HostList[0], topo.HostList[14], topo.HostList[15])
 	# iperf Server
@@ -229,15 +242,21 @@ def iperfTest(net, topo):
 	h016.cmdPrint('iperf -c ' + h015.IP() + ' -u -t 10 -i 1 -b 10m')
 
 def pingTest(net):
-	logger.debug("Start Test all network")
+	"""
+		Start ping test.
+	"""
 	net.pingAll()
 
-def createTopo(pod, density, ip="192.168.56.101", port=6653, bw_c2a=10, bw_a2e=10, bw_h2a=10):
-	logging.debug("LV1 Create Fattree")
+def createTopo(pod, density, ip="192.168.56.101", port=6653, bw_c2a=10, bw_a2e=10, bw_e2h=10):
+	"""
+		Create network topology and run the Mininet.
+	"""
+	# Create Topo.
 	topo = Fattree(pod, density)
-	topo.createTopo()
-	topo.createLink(bw_c2a=bw_c2a, bw_a2e=bw_a2e, bw_h2a=bw_h2a)
-	logging.debug("LV1 Start Mininet")
+	topo.createNodes()
+	topo.createLinks(bw_c2a=bw_c2a, bw_a2e=bw_a2e, bw_e2h=bw_e2h)
+
+	# Start Mininet.
 	CONTROLLER_IP = ip
 	CONTROLLER_PORT = port
 	net = Mininet(topo=topo, link=TCLink, controller=None, autoSetMacs=True)
@@ -245,13 +264,13 @@ def createTopo(pod, density, ip="192.168.56.101", port=6653, bw_c2a=10, bw_a2e=1
 		'controller', controller=RemoteController,
 		ip=CONTROLLER_IP, port=CONTROLLER_PORT)
 	net.start()
+
 	# Set OVS's protocol as OF13.
 	topo.set_ovs_protocol_13()
 	# Set hosts IP addresses.
 	set_host_ip(net, topo)
 	# Install proactive flow entries
 	install_proactive(net, topo)
-	# logger.debug("LV1 dumpNode")
 	# dumpNodeConnections(net.hosts)
 	# pingTest(net)
 	# iperfTest(net, topo)
@@ -262,7 +281,7 @@ def createTopo(pod, density, ip="192.168.56.101", port=6653, bw_c2a=10, bw_a2e=1
 if __name__ == '__main__':
 	setLogLevel('info')
 	if os.getuid() != 0:
-		logger.debug("You are NOT root")
+		logging.debug("You are NOT root")
 	elif os.getuid() == 0:
 		createTopo(4, 2)
 		# createTopo(8, 4)

@@ -296,7 +296,7 @@ class ShortestForwarding(app_manager.RyuApp):
 			pass
 
 		self.add_flow(datapath, 30, match, actions,
-					  idle_timeout=15, hard_timeout=60)
+					  idle_timeout=5, hard_timeout=10)
 
 	def install_flow(self, datapaths, link_to_port, path, flow_info, buffer_id, data=None):
 		'''
@@ -312,6 +312,7 @@ class ShortestForwarding(app_manager.RyuApp):
 		in_port = flow_info[3]
 		first_dp = datapaths[path[0]]
 		out_port = first_dp.ofproto.OFPP_LOCAL
+
 		# Install flow entry for intermediate datapaths.
 		for i in range(1, (len(path) - 1) / 2):
 			port = self.get_port_pair_from_link(link_to_port, path[i-1], path[i])

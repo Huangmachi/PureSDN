@@ -22,7 +22,7 @@
 
 DISCOVERY_PERIOD = 10   # For discovering topology.
 
-MONITOR_PERIOD = 10   # For monitoring traffic
+MONITOR_PERIOD = 5   # For monitoring traffic
 
 TOSHOW = True	   # For showing information in terminal
 

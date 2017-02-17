@@ -84,7 +84,7 @@ class NetworkAwareness(app_manager.RyuApp):
 		i = 0
 		while True:
 			self.show_topology()
-			if i == 5:   # Reload topology every 50 seconds.
+			if i == 2:   # Reload topology every 20 seconds.
 				self.get_topology(None)
 				i = 0
 			hub.sleep(setting.DISCOVERY_PERIOD)
@@ -196,11 +196,11 @@ class NetworkAwareness(app_manager.RyuApp):
 			Get initiation delay.
 		"""
 		if fanout == 4:
-			delay = 10
-		elif fanout == 8:
-			delay = 60
-		else:
 			delay = 20
+		elif fanout == 8:
+			delay = 30
+		else:
+			delay = 30
 		return delay
 
 	def create_port_map(self, switch_list):

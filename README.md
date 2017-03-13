@@ -20,6 +20,14 @@ The detailed information of the modules is shown below:
 We make use of networkx's data structure to store topology. Meanwhile, we also utilize networkx's built-in algorithm to calculate shortest paths.
 
 
+### Prerequisites
+
+The following softwares should have been installed in your machine.
+    Mininet: git clone git://github.com/mininet/mininet; mininet/util/install.sh -a
+    Ryu: git clone git://github.com/osrg/ryu.git; cd ryu; pip install .
+    Networkx: pip install networkx
+
+
 ### Download
 
 Download files into Ryu directory, for instance, 'ryu/ryu/app/PureSDN' is OK.
@@ -68,6 +76,6 @@ If you want to show the collected information, you can set the parameters in set
 
 Brought to you by Huang MaChi (Chongqing University of Posts and Telecommunications, Chongqing, China.) and Li Cheng (Beijing University of Posts and Telecommunications. www.muzixing.com).
 
-If you have any question, email me. Don't forget to STAR this repository!
+If you have any question, email me at huangmachi@foxmail.com. Don't forget to STAR this repository!
 
 Enjoy it!

@@ -53,6 +53,8 @@ You must reinstall Ryu, so that you can run the new code. In the top directory o
 
 ### Start
 
+Note: Before doing the experiment, you should change the controller's IP address from '192.168.56.101' to your own machine's eth0 IP address in the fattree.py module in each application, because '192.168.56.101' is my computer's eth0 IP address (Try 'ifconfig' in your Ubuntu to find out the eth0's IP address). Otherwise, the switches can't connect to the controller.
+
 Firstly, start up the network. An example is shown below:
 
     $ sudo python ryu/ryu/app/PureSDN/fattree4.py

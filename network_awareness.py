@@ -294,7 +294,7 @@ class NetworkAwareness(app_manager.RyuApp):
 				return
 
 	def show_topology(self):
-		if self.pre_link_to_port != self.link_to_port and setting.TOSHOW:
+		if self.pre_link_to_port != self.link_to_port and setting.TOSHOW_topo:
 			# It means the link_to_port table has changed.
 			_graph = self.graph.copy()
 			print "\n---------------------Link Port---------------------"
@@ -313,7 +313,7 @@ class NetworkAwareness(app_manager.RyuApp):
 			print
 			self.pre_link_to_port = self.link_to_port.copy()
 
-		if self.pre_access_table != self.access_table and setting.TOSHOW:
+		if self.pre_access_table != self.access_table and setting.TOSHOW_topo:
 			# It means the access_table has changed.
 			print "\n----------------Access Host-------------------"
 			print '%10s' % 'switch', '%10s' % 'port', '%22s' % 'Host'

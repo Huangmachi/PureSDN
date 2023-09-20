@@ -24,6 +24,9 @@ DISCOVERY_PERIOD = 10   # For discovering topology.
 
 MONITOR_PERIOD = 5   # For monitoring traffic
 
-TOSHOW = True	   # For showing information in terminal
+TOSHOW_topo = True	   # For showing network topology in terminal
+TOSHOW_stat = True	   # For showing statistics in terminal
+TOSHOW_flow_stat = True	   # For showing flow statistics in terminal
+TOSHOW_port_stat = False	   # For showing port statistics in terminal
 
 MAX_CAPACITY = 10000   # Max capacity of link

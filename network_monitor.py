@@ -384,11 +384,11 @@ class NetworkMonitor(app_manager.RyuApp):
 			Show statistics information according to data type.
 			_type: 'port' / 'flow'
 		'''
-		if setting.TOSHOW is False:
+		if setting.TOSHOW_stat is False:
 			return
 
 		bodys = self.stats[_type]
-		if _type == 'flow':
+		if _type == 'flow' and setting.TOSHOW_flow_stat:
 			print('\ndatapath  '
 				'priority        ip_src        ip_dst  '
 				'  packets        bytes  flow-speed(Kb/s)')
@@ -406,7 +406,7 @@ class NetworkMonitor(app_manager.RyuApp):
 						abs(self.flow_speed[dpid][(stat.priority, stat.match.get('ipv4_src'), stat.match.get('ipv4_dst'))][-1])*8/1000.0))
 			print
 
-		if _type == 'port':
+		if _type == 'port' and setting.TOSHOW_port_stat:
 			print('\ndatapath  port '
 				'   rx-pkts     rx-bytes ''   tx-pkts     tx-bytes '
 				' port-bw(Kb/s)  port-speed(b/s)  port-freebw(Kb/s) '
